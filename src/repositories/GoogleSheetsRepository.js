@@ -1,9 +1,14 @@
 import iniciarGoogleSheets from "../googleSheets/auth.js";
 
+/**
+ * O Repository é responsável por acessar e manipular dados de uma fonte de dados
+ */
+
 class GoogleSheetsRepository {
 
+    // Busca as informações do autor e da planilha (geral)
     async buscarMetaDados() {
-        const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets();
+        const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets;
 
         // Faz a consulta para obter os metadados da planilha
         const query = await googleSheets.spreadsheets.get({
@@ -11,13 +16,17 @@ class GoogleSheetsRepository {
             spreadsheetId
         });
 
+        // Retorna o resultado da busca
         return query.data;
     }
 
+    // Retorna os valores de cada linha da planilha
     async buscarPagina(pagina) {
-        const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets();
 
-        // Faz a consulta para obter as linhas da página escolhida
+        // Pega as constantes da função iniciarGoogleSheets
+        const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets;
+
+        // Define a página que será estraida a informação
         const query = await googleSheets.spreadsheets.values.get({
             auth,
             spreadsheetId,
@@ -26,7 +35,8 @@ class GoogleSheetsRepository {
             dateTimeRenderOption: "FORMATTED_STRING"
         });
 
-        return query.data;
+        // Retorna o resultado da busca
+        return query.data.values;
     }
 }
 

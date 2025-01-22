@@ -7,7 +7,7 @@ dotenv.config();
 async function iniciarGoogleSheets() {
 
     try {
-        // Passando as chaves de acesso
+        // Chaves de acesso
         const auth = new google.auth.GoogleAuth({
             keyFile: process.env.GS_KEY,
             scopes: process.env.GS_SCOPES
@@ -22,7 +22,7 @@ async function iniciarGoogleSheets() {
             auth: client
         });
 
-        // Passando o url do sheet
+        // Passando o url do GoogleSheets
         const spreadsheetId = process.env.GS_ID;
 
         // Retornando o resultado para a função

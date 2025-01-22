@@ -1,7 +1,12 @@
 import conexao from '../database/conexao.js';
 
+/**
+ * O Repository é responsável por acessar e manipular dados de uma fonte de dados
+ */
+
 class FuncionarioRepository {
 
+    // Buca todos os funcionários do banco de dados
     async buscarTodos() {
         const query = 'SELECT * FROM FUNCIONARIOS';
         try {
@@ -13,6 +18,7 @@ class FuncionarioRepository {
         }
     }
     
+    // Busca um funcionário específico, utilizando sua chapa
     async buscarPorChapa(chapa) {
         const query = 'SELECT * FROM FUNCIONARIOS WHERE chapa = $1';
         
@@ -25,6 +31,7 @@ class FuncionarioRepository {
         }
     }
 
+    // Cria um novo funcionário
     async criar(funcionario) {
         const query = `
         INSERT INTO FUNCIONARIOS 
@@ -54,6 +61,7 @@ class FuncionarioRepository {
         }
     }
 
+    // Atualiza um funcionário existente
     async atualizar(chapa, funcionario) {
         const query = `
             UPDATE FUNCIONARIOS SET 
@@ -91,6 +99,7 @@ class FuncionarioRepository {
         }
     }
 
+    // Deleta um funcionário
     async deletar(chapa) {
         const query = 'DELETE FROM FUNCIONARIOS WHERE chapa = $1 RETURNING *';
         
