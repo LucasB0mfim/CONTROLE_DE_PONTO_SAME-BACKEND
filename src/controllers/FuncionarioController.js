@@ -1,92 +1,64 @@
 import Funcionario from '../models/Funcionario.js';
 import FuncionarioRepository from '../repositories/FuncionarioRepository.js';
 
+const repository = FuncionarioRepository;
+
 class FuncionarioController {
+
     async index(req, res) {
-        try {
-            const funcionarios = await FuncionarioRepository.findAll();
-            return res.json(funcionarios);
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
+        const funcionarios = await repository.buscarTodos();
+        return res.json(funcionarios);
     }
 
     async show(req, res) {
-        try {
-            const { id } = req.params;
-            const funcionario = await FuncionarioRepository.findById(id);
-            
-            if (!funcionario) {
-                return res.status(404).json({ error: 'Funcionário não encontrado' });
-            }
-            
-            return res.json(funcionario);
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
+        const { chapa } = req.params;
+        const funcionario = await repository.buscarPorChapa(chapa);
+        return res.json(funcionario);
     }
 
     async store(req, res) {
-        try {
-            const {
-                inicioFerias,
-                fimFerias,
-                chapa,
-                status,
-                tipoContrato,
-                centroCusto,
-                nome,
-                funcao
-            } = req.body;
 
-            const funcionario = new Funcionario(
-                inicioFerias,
-                fimFerias,
-                chapa,
-                status,
-                tipoContrato,
-                centroCusto,
-                nome,
-                funcao
-            );
+        const {
+            inicio_ferias,
+            fim_ferias,
+            chapa,
+            status,
+            tipo_contrato,
+            centro_custo,
+            nome,
+            funcao,
+            faltas,
+            atestados
+        } = req.body;
 
-            const novoFuncionario = await FuncionarioRepository.create(funcionario);
-            return res.status(201).json(novoFuncionario);
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
+        const funcionario = new Funcionario (
+            inicio_ferias,
+            fim_ferias,
+            chapa,
+            status,
+            tipo_contrato,
+            centro_custo,
+            nome,
+            funcao,
+            faltas,
+            atestados
+        );
+
+        const novoFuncionario = await repository.criar(funcionario);
+
+        return res.status(201).json(novoFuncionario);
     }
 
     async update(req, res) {
-        try {
-            const { id } = req.params;
-            const funcionario = await FuncionarioRepository.findById(id);
-            
-            if (!funcionario) {
-                return res.status(404).json({ error: 'Funcionário não encontrado' });
-            }
-
-            const funcionarioAtualizado = await FuncionarioRepository.update(id, req.body);
-            return res.json(funcionarioAtualizado);
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
+        const { chapa } = req.params;
+        const funcionarioAtualizado = await repository.atualizar(chapa, req.body);
+        return res.json(funcionarioAtualizado);
     }
 
     async delete(req, res) {
-        try {
-            const { id } = req.params;
-            const funcionario = await FuncionarioRepository.findById(id);
-            
-            if (!funcionario) {
-                return res.status(404).json({ error: 'Funcionário não encontrado' });
-            }
-
-            await FuncionarioRepository.delete(id);
-            return res.status(204).send();
-        } catch (error) {
-            return res.status(500).json({ error: error.message });
-        }
+        const { chapa } = req.params;
+        await repository.deletar(chapa);
+        return res.status(200).json({ message: `Funcionário com chapa ${chapa} foi deletado com sucesso.` });
     }
 }
 

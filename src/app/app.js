@@ -1,5 +1,6 @@
 import express from "express";
-import routes from "../routes/funcionarioRoutes.js"
+import funcionariosRouter from "../routes/funcionarioRoutes.js"
+import googleSheetsRouter from "../routes/googleSheetsRouter.js";
 
 // Inicia o express
 const app = express();
@@ -8,7 +9,8 @@ const app = express();
 app.use(express.json());
 
 // Usa as rotas
-app.use('/same-engenharia/api/', routes);
+app.use('/same-engenharia/api', funcionariosRouter);
+app.use("/same-engenharia/api/sheets", googleSheetsRouter);
 
 // Define a porta de acesso
 const PORT = process.env.PORT || 3000;

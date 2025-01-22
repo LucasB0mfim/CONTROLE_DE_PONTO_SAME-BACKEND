@@ -4,9 +4,9 @@ import FuncionarioController from "../controllers/FuncionarioController.js"
 const router = express.Router();
 
 router.get('/funcionarios', FuncionarioController.index)
-router.get('/funcionarios/:id', FuncionarioController.show)
+router.get('/funcionarios/:chapa', FuncionarioController.show)
 router.post('/funcionarios', FuncionarioController.store)
-router.put('/funcionarios/:id', FuncionarioController.update)
-router.delete('/funcionarios/:id', FuncionarioController.delete)
+router.put('/funcionarios/:chapa', FuncionarioController.update)
+router.delete('/funcionarios/:chapa', FuncionarioController.delete)
 
 export default router;
