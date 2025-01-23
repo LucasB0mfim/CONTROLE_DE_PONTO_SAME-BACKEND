@@ -14,7 +14,7 @@ app.use('/same-engenharia/api', funcionariosRouter);
 app.use("/same-engenharia/api", googleSheetsRouter);
 
 // Define a porta de acesso
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.DB_PORT;
 
 // Retorna no terminal a porta do servidor
 app.listen(PORT, () => {

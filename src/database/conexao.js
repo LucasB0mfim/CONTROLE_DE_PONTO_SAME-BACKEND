@@ -1,24 +1,25 @@
-import pkg from "pg";
+import sql from "mssql";
 import dotenv from "dotenv";
-
-// Variavel para se conectar com o postgres
-const { Client } = pkg;
 
 // Guarda as chaves para conexão com o banco
 dotenv.config();
 
 // Configuração inicial
-const conexao = new Client({
+const conexao = {
     user: process.env.DB_USER,
-    host: process.env.DB_HOST,
+    server: process.env.DB_SERVER,
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: Number(process.env.DB_PORT),
-});
+    options: {
+        encrypt: true,
+        trustServerCertificate: true
+    }
+};
 
 // Estabelecendo a conexão
 try {
-    await conexao.connect();
+    await sql.connect(conexao);
     console.log('Banco de dados conectado com sucesso!');
 } catch (error) {
     console.error('Erro ao conectar ao banco de dados:', error);
