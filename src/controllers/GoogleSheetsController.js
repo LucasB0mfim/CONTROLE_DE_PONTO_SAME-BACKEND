@@ -2,24 +2,37 @@ import GoogleSheetsRepository from "../repositories/GoogleSheetsRepository.js";
 
 const repository = GoogleSheetsRepository;
 
-/**
- * O  Controller é responsável por gerenciar as requisições que chegam 
- * ao servidor e direcioná-las para os serviços ou funcionalidades apropriadas. 
- */
-
 class GoogleSheetsController {
 
-    // Método para enviar os metadados do Google Sheets
     async getMetaDados(req, res) {
-        const metaDados = await repository.buscarMetaDados();
-        return res.json(metaDados);
+        try {
+            const metaDados = await repository.buscarMetaDados();
+            return res.json(metaDados);
+        } catch (error) {
+            console.error("Erro ao buscar metadados:", error);
+            return res.status(500).json({ message: "Erro ao buscar metadados." });
+        }
     }
 
-    // Método para enviar os valores de cada linha de uma planilha específica 
     async getPagina(req, res) {
-        const { pagina } = req.params;
-        const metaDados = await repository.buscarPagina(pagina);
-        return res.json(metaDados);
+        try {
+            const { pagina } = req.params;
+            const metaDados = await repository.buscarPagina(pagina);
+            return res.json(metaDados);
+        } catch (error) {
+            console.error("Erro ao buscar página:", error);
+            return res.status(500).json({ message: "Erro ao buscar página." });
+        }
+    }
+
+    async postControleDiario(req, res) {
+        try {
+            const resultado = await repository.enviarControleDiario();
+            return res.json(resultado);
+        } catch (error) {
+            console.error("Erro ao enviar controle diário:", error);
+            return res.status(500).json({ message: "Erro ao enviar controle diário." });
+        }
     }
 }
 

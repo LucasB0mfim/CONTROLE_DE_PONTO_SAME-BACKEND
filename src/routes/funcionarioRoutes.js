@@ -7,8 +7,5 @@ const router = express.Router();
 // Rotas de acesso
 router.get('/funcionarios', FuncionarioController.index)
 router.get('/funcionarios/:chapa', FuncionarioController.show)
-router.post('/funcionarios', FuncionarioController.store)
-router.put('/funcionarios/:chapa', FuncionarioController.update)
-router.delete('/funcionarios/:chapa', FuncionarioController.delete)
 
 export default router;

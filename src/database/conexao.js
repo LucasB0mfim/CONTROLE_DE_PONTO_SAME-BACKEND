@@ -19,10 +19,10 @@ const conexao = {
 
 // Estabelecendo a conexão
 try {
-    await sql.connect(conexao);
+    var pool = new sql.ConnectionPool(conexao);
     console.log('Banco de dados conectado com sucesso!');
 } catch (error) {
     console.error('Erro ao conectar ao banco de dados:', error);
 }
 
-export default conexao;
+export default pool;
