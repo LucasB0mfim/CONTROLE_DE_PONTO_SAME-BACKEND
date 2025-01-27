@@ -1,78 +1,160 @@
-import iniciarGoogleSheets from "../googleSheets/auth.js";
-import FuncionarioRepository from '../repositories/FuncionarioRepository.js';
-
-const repository = FuncionarioRepository;
+import FuncionarioRepository from "./FuncionarioRepository.js";
+import iniciarGoogleSheets from "../googleSheets/auth.js"
+import supabase from "../database/supabase.js";
 
 class GoogleSheetsRepository {
-
-    async buscarMetaDados() {
-        const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets;
-        const query = await googleSheets.spreadsheets.get({
-            auth,
-            spreadsheetId
-        });
-        return query.data;
-    }
-
-    async buscarPagina(pagina) {
-        const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets;
-        const query = await googleSheets.spreadsheets.values.get({
-            auth,
-            spreadsheetId,
-            range: pagina,
-            valueRenderOption: "UNFORMATTED_VALUE",
-            dateTimeRenderOption: "FORMATTED_STRING"
-        });
-        return query.data.values;
-    }
-
-    async enviarControleDiario() {
+    async gerarResumo() {
         try {
-            const { googleSheets, auth, spreadsheetId } = await iniciarGoogleSheets;
+            const funcionarios = await FuncionarioRepository.buscarTodos();
+            const planilhaDB = (await supabase.from('folha_ponto').select('*')).data;
 
-            const planilha = await lerPlanilha();
-            const dataPadrao = planilha.length > 0 ? planilha[0]["Período"] : "Indefinido";
+            const resumoPorFuncionario = funcionarios.map(func => {
+                const registrosFuncionario = planilhaDB.filter(registro =>
+                    registro.NOME === func.NOME
+                );
 
-            const funcionarios = await repository.buscarTodos();
-            const unirDados = funcionarios.map((items) => {
-                const compararNomes = planilha.find((item) => item.Nome === items.NOME);
+                // Processar registros significativos
+                const registrosSignificativos = registrosFuncionario.filter(registro => 
+                    registro.FALTA === 'SIM' || 
+                    registro['EVENTO ABONO'] !== 'NÃO CONSTA' ||
+                    registro['JORNADA REALIZADA'] !== '00:00:00'
+                );
+
                 return {
-                    Chapa: items.CHAPA,
-                    Nome: items.NOME,
-                    "Jornada realizada": compararNomes ? compararNomes["Jornada realizada"] || "09:00:00" : "09:00:00",
-                    Falta: compararNomes ? compararNomes["Falta"] || "NÃO" : "NÃO",
-                    Período: compararNomes && compararNomes["Período"] !== "Indefinido" ? compararNomes["Período"] : dataPadrao,
-                    "Evento Abono": compararNomes ? compararNomes["Evento Abono"] || "Ativo" : "Ativo"
+                    "DATA INÍCIO FÉRIAS": func["DATA INÍCIO FÉRIAS"],
+                    "DATA FIM FÉRIAS": func["DATA FIM FÉRIAS"],
+                    "CHAPA": func["CHAPA"],
+                    "STATUS": func["STATUS"],
+                    "NÚMERO ATESTADOS": this._contarAtestados(registrosFuncionario),
+                    "NÚMERO FALTAS": this._contarFaltas(registrosFuncionario),
+                    "CENTRO DE CUSTO": func["CENTRO DE CUSTO"],
+                    "NOME": func["NOME"],
+                    "FUNÇÃO": func["FUNÇÃO"],
+                    "REGISTROS": registrosSignificativos.map(registro => ({
+                        "DIA": new Date(registro.PERIODO).toISOString().split('T')[0],
+                        "JORNADA REALIZADA": registro["JORNADA REALIZADA"],
+                        "FALTA": registro["FALTA"],
+                        "EVENTO ABONO": registro["EVENTO ABONO"]
+                    }))
                 };
             });
 
-            const cabecalho = ["Chapa", "Nome", "Jornada Realizada", "Falta", "Período", "Evento Abono"];
-            const dadosEnviados = [
-                cabecalho,
-                ...unirDados.map((item) => [
-                    item.Chapa,
-                    item.Nome,
-                    item["Jornada realizada"],
-                    item.Falta,
-                    item.Período,
-                    item["Evento Abono"]
-                ])
+            return resumoPorFuncionario;
+        } catch (error) {
+            console.error("Erro ao gerar resumo. " + error);
+            throw error;
+        }
+    }
+
+    // Métodos auxiliares agora são métodos privados
+    _contarAtestados(registros) {
+        return registros.filter(registro =>
+            registro["EVENTO ABONO"] &&
+            registro["EVENTO ABONO"].toLowerCase().includes('atestado')
+        ).length;
+    }
+
+    _contarFaltas(registros) {
+        return registros.filter(registro =>
+            registro.FALTA === 'SIM' && 
+            registro["EVENTO ABONO"] === 'NÃO CONSTA'
+        ).length;
+    }
+
+    async enviarResumo() {
+        try {
+            const resumo = await this.gerarResumo();
+
+            const { googleSheets, spreadsheetId } = await iniciarGoogleSheets;
+
+            // Limpar a planilha existente
+            await googleSheets.spreadsheets.values.clear({
+                spreadsheetId,
+                range: 'Página1!A:Z'
+            });
+
+            // Gerar os headers das colunas fixas
+            const headersFixos = [
+                'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS', 'CHAPA', 'STATUS',
+                'NÚMERO ATESTADOS', 'NÚMERO FALTAS', 'CENTRO DE CUSTO',
+                'NOME', 'FUNÇÃO'
             ];
 
+            // Gerar headers dos dias do mês
+            const primeiroRegistro = resumo[0];
+
+            const todasAsDatas = new Set();
+
+            resumo.forEach(funcionario => {
+                funcionario.REGISTROS.forEach(registro => {
+                    todasAsDatas.add(registro.DIA);
+                });
+            });
+
+            // Ordena as datas em ordem crescente
+            const datasOrdenadas = Array.from(todasAsDatas).sort();
+
+            const headersDias = datasOrdenadas.map(data => {
+                const dataBr = new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                return dataBr;
+            });
+
+            // Combinar headers
+            const headers = [...headersFixos, ...headersDias];
+
+            // Prepara os dados para cada funcionário
+            const dadosParaPlanilha = resumo.map(funcionario => {
+                // Dados fixos do funcionário
+                const dadosFuncionario = [
+                    funcionario['DATA INÍCIO FÉRIAS'],
+                    funcionario['DATA FIM FÉRIAS'],
+                    funcionario['CHAPA'],
+                    funcionario['STATUS'],
+                    funcionario['NÚMERO ATESTADOS'],
+                    funcionario['NÚMERO FALTAS'],
+                    funcionario['CENTRO DE CUSTO'],
+                    funcionario['NOME'],
+                    funcionario['FUNÇÃO']
+                ];
+
+                // Adiciona informações de cada dia
+                datasOrdenadas.forEach(data => {
+                    const registroDia = funcionario.REGISTROS.find(r => r.DIA === data);
+                    
+                    // Responsável por mostrar a informação na coluna de dias
+                    if (registroDia) {
+                        if (registroDia.FALTA === 'SIM' && registroDia["EVENTO ABONO"] === 'NÃO CONSTA') {
+                            dadosFuncionario.push('FALTOU');
+                        } else if (registroDia.FALTA === 'SIM' && registroDia["EVENTO ABONO"] !== 'NÃO CONSTA') {
+                            dadosFuncionario.push(registroDia['EVENTO ABONO'].toUpperCase());
+                        } else {
+                            dadosFuncionario.push('PRESENTE');
+                        }
+                    } else {
+                        dadosFuncionario.push('FALTOU');
+                    }
+                });
+
+                return dadosFuncionario;
+            });
+
+            // Combinar headers e dados
+            const valoresParaEnviar = [headers, ...dadosParaPlanilha];
+
+            // Enviar dados para o Google Sheets
             await googleSheets.spreadsheets.values.update({
-                auth,
                 spreadsheetId,
-                range: "Página1",
-                valueInputOption: "USER_ENTERED",
+                range: 'Página1!A1',
+                valueInputOption: 'RAW',
                 resource: {
-                    values: dadosEnviados
+                    values: valoresParaEnviar
                 }
             });
 
-            return { message: "Dados enviados com sucesso!" };
+            return resumo;
         } catch (error) {
-            console.error("Erro ao adicionar dados ao Google Sheets", error);
-            throw new Error("Erro ao adicionar dados ao Google Sheets: " + error.message);
+            console.error("Erro ao enviar dados ao Google Sheets. " + error);
+            throw error;
         }
     }
 }

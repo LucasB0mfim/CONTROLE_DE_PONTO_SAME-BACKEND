@@ -11,17 +11,14 @@ class FuncionarioController {
 
     // Método para enviar todos os funcionários
     async index(req, res) {
-        const funcionarios = await repository.buscarTodos();
-        return res.json(funcionarios);
+        try {
+            const funcionarios = await repository.buscarTodos();
+            return res.json(funcionarios);
+        } catch (error) {
+            console.error('Erro ao buscar funcionários:', error);
+            return res.status(500).json({ error: 'Erro ao buscar funcionários' });
+        }
     }
-
-    // Método para enviar uma lista com todos os funcionários
-    async show(req, res) {
-        const { chapa } = req.params;
-        const funcionario = await repository.buscarPorChapa(chapa);
-        return res.json(funcionario);
-    }
-
 }
 
 export default new FuncionarioController();

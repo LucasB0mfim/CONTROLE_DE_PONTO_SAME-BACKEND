@@ -4,34 +4,23 @@ const repository = GoogleSheetsRepository;
 
 class GoogleSheetsController {
 
-    async getMetaDados(req, res) {
+    async create(req, res) {
         try {
-            const metaDados = await repository.buscarMetaDados();
-            return res.json(metaDados);
+            const resumo = await repository.gerarResumo();
+            return res.json(resumo);
         } catch (error) {
-            console.error("Erro ao buscar metadados:", error);
-            return res.status(500).json({ message: "Erro ao buscar metadados." });
+            console.error("Erro ao gerar o resumo.");
+            return res.status(500).json({ error: "Erro ao gerar o resumo. " + error });
         }
     }
 
-    async getPagina(req, res) {
+    async send(req, res) {
         try {
-            const { pagina } = req.params;
-            const metaDados = await repository.buscarPagina(pagina);
-            return res.json(metaDados);
+            await repository.enviarResumo();
+            return res.json({ message: "Resumo enviado com sucesso para o Google Sheets" });
         } catch (error) {
-            console.error("Erro ao buscar página:", error);
-            return res.status(500).json({ message: "Erro ao buscar página." });
-        }
-    }
-
-    async postControleDiario(req, res) {
-        try {
-            const resultado = await repository.enviarControleDiario();
-            return res.json(resultado);
-        } catch (error) {
-            console.error("Erro ao enviar controle diário:", error);
-            return res.status(500).json({ message: "Erro ao enviar controle diário." });
+            console.error("Erro ao enviar resumo para o Google Sheets.");
+            return res.status(500).json({ error: "Erro ao enviar resumo. " + error });
         }
     }
 }

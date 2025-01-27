@@ -1,7 +1,10 @@
 import express from "express";
+import dotenv from "dotenv";
 
-import funcionariosRouter from "../routes/funcionarioRoutes.js"
-import googleSheetsRouter from "../routes/googleSheetsRouter.js";
+import router from "../routes/index.js"
+
+// Guarda as chaves para conexão com o banco
+dotenv.config();
 
 // Inicia o express
 const app = express();
@@ -9,9 +12,8 @@ const app = express();
 // Indica para o express ler o body como json
 app.use(express.json());
 
-// Usa as rotas
-app.use('/same-engenharia/api', funcionariosRouter);
-app.use("/same-engenharia/api", googleSheetsRouter);
+// Define a rota padrão
+app.use('/same-engenharia/api', router);
 
 // Define a porta de acesso
 const PORT = process.env.SERVER_PORT;
