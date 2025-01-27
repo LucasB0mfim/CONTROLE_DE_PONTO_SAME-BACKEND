@@ -17,5 +17,7 @@ router.post("/planilha/importar-planilha", PlanilhaController.importarPlanilha);
 router.get("/google-sheets/visualizar-resumo", GoogleSheetsController.create);
 router.post("/google-sheets/enviar-resumo", GoogleSheetsController.send);
 
+router.post("/controle-ponto-eletronico/gerar", ControlePontoEletronico.generate);
+
 // Exportando a rota
 export default router;
