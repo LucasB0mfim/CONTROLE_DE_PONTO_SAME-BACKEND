@@ -49,15 +49,16 @@ class GoogleSheetsRepository {
     // Métodos auxiliares agora são métodos privados
     _contarAtestados(registros) {
         return registros.filter(registro =>
-            registro["EVENTO ABONO"] &&
-            registro["EVENTO ABONO"].toLowerCase().includes('atestado')
+            registro["EVENTO ABONO"] !== "NÃO CONSTA" &&
+            registro["EVENTO ABONO"] !== "Férias"
         ).length;
     }
 
     _contarFaltas(registros) {
         return registros.filter(registro =>
-            registro.FALTA === 'SIM' && 
-            registro["EVENTO ABONO"] === 'NÃO CONSTA'
+            registro.FALTA === "SIM" && 
+            registro["EVENTO ABONO"] === "NÃO CONSTA" ||
+            registro.FALTA == ""
         ).length;
     }
 
@@ -131,7 +132,7 @@ class GoogleSheetsRepository {
                             dadosFuncionario.push('PRESENTE');
                         }
                     } else {
-                        dadosFuncionario.push('FALTOU');
+                        dadosFuncionario.push("PRESENTE");
                     }
                 });
 
@@ -156,6 +157,10 @@ class GoogleSheetsRepository {
             console.error("Erro ao enviar dados ao Google Sheets. " + error);
             throw error;
         }
+    }
+
+    async receberArquivo() {
+        
     }
 }
 
