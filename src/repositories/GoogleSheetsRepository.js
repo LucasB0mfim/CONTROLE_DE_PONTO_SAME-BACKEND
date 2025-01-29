@@ -14,8 +14,52 @@ class GoogleSheetsRepository {
                 );
 
                 // Processar registros significativos
-                const registrosSignificativos = registrosFuncionario.filter(registro => 
-                    registro.FALTA === 'SIM' || 
+                const registrosSignificativos = registrosFuncionario.filter(registro =>
+                    registro.FALTA === 'SIM' ||
+                    registro['EVENTO ABONO'] !== 'NÃO CONSTA' ||
+                    registro['JORNADA REALIZADA'] !== '00:00:00'
+                );
+
+                return {
+                    "DATA INÍCIO FÉRIAS": func["DATA INÍCIO FÉRIAS"],
+                    "DATA FIM FÉRIAS": func["DATA FIM FÉRIAS"],
+                    "CHAPA": func["CHAPA"],
+                    "STATUS": func["STATUS"],
+                    "NÚMERO ATESTADOS": this._contarAtestados(registrosFuncionario),
+                    "NÚMERO FALTAS": this._contarFaltas(registrosFuncionario),
+                    "CENTRO DE CUSTO": func["CENTRO DE CUSTO"],
+                    "NOME": func["NOME"],
+                    "FUNÇÃO": func["FUNÇÃO"],
+                    "REGISTROS": registrosSignificativos.map(registro => ({
+                        "DIA": new Date(registro.PERIODO).toISOString().split('T')[0],
+                        "JORNADA REALIZADA": registro["JORNADA REALIZADA"],
+                        "FALTA": registro["FALTA"],
+                        "EVENTO ABONO": registro["EVENTO ABONO"]
+                    }))
+                };
+            });
+
+            return resumoPorFuncionario;
+        } catch (error) {
+            console.error("Erro ao gerar resumo. " + error);
+            throw error;
+        }
+    }
+
+    async gerarResumoComSupaBase() {
+        try {
+            await FuncionarioRepository.migrarBancoParaSupaBase();
+            const funcionarios = (await supabase.from('funcionarios').select('*')).data;
+            const planilhaDB = (await supabase.from('folha_ponto').select('*')).data;
+
+            const resumoPorFuncionario = funcionarios.map(func => {
+                const registrosFuncionario = planilhaDB.filter(registro =>
+                    registro.NOME === func.NOME
+                );
+
+                // Processar registros significativos
+                const registrosSignificativos = registrosFuncionario.filter(registro =>
+                    registro.FALTA === 'SIM' ||
                     registro['EVENTO ABONO'] !== 'NÃO CONSTA' ||
                     registro['JORNADA REALIZADA'] !== '00:00:00'
                 );
@@ -56,7 +100,7 @@ class GoogleSheetsRepository {
 
     _contarFaltas(registros) {
         return registros.filter(registro =>
-            registro.FALTA === "SIM" && 
+            registro.FALTA === "SIM" &&
             registro["EVENTO ABONO"] === "NÃO CONSTA" ||
             registro.FALTA == ""
         ).length;
@@ -121,7 +165,7 @@ class GoogleSheetsRepository {
                 // Adiciona informações de cada dia
                 datasOrdenadas.forEach(data => {
                     const registroDia = funcionario.REGISTROS.find(r => r.DIA === data);
-                    
+
                     // Responsável por mostrar a informação na coluna de dias
                     if (registroDia) {
                         if (registroDia.FALTA === 'SIM' && registroDia["EVENTO ABONO"] === 'NÃO CONSTA') {
@@ -157,10 +201,6 @@ class GoogleSheetsRepository {
             console.error("Erro ao enviar dados ao Google Sheets. " + error);
             throw error;
         }
-    }
-
-    async receberArquivo() {
-        
     }
 }
 

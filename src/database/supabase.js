@@ -10,6 +10,7 @@ const supabase = createClient(
 // Estabelecendo a conexão
 try {
     await supabase.from('folha_ponto').select('*').limit(1);
+    await supabase.from('funcionarios').select('*').limit(1);
     console.log('Banco de dados supabase conectado com sucesso!');
 } catch (error) {
     console.error('Erro ao conectar ao banco de dados:', error);

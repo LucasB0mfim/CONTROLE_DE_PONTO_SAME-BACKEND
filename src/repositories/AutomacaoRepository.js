@@ -49,7 +49,7 @@ class AutomacaoRepository {
                 throw new Error(error.message || error);
             }
 
-            await GoogleSheetsRepository.gerarResumo();
+            await GoogleSheetsRepository.gerarResumoComSupaBase();
             await GoogleSheetsRepository.enviarResumo();
 
             return {

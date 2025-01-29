@@ -19,6 +19,16 @@ class FuncionarioController {
             return res.status(500).json({ error: 'Erro ao buscar funcionários' });
         }
     }
+
+    async import(req, res) {
+        try {
+            const resultado = await repository.importarBancoInternoParaSupeBase();
+            return res.json(resultado);
+        } catch (error) {
+            console.log('Erro ao importar banco de dados para o supabase');
+            return res.status(500).json({ error: 'Não foi possível importar o banco de dados.' })
+        }
+    }
 }
 
 export default new FuncionarioController();
