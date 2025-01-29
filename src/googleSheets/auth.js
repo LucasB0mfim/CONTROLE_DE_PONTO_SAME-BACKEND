@@ -7,11 +7,12 @@ dotenv.config();
 async function iniciarGoogleSheets() {
 
     try {
-        const credetials = JSON.parse(process.env.GC);
+        // Parse o JSON string das credenciais
+        const credentials = JSON.parse(process.env.GS_KEY);
 
         // Chaves de acesso
         const auth = new google.auth.GoogleAuth({
-            keyFile: process.env.GS_KEY,
+            credentials: credentials,
             scopes: process.env.GS_SCOPES
         });
 
