@@ -188,7 +188,7 @@ class GoogleSheetsRepository {
             // Enviar dados para o Google Sheets
             await googleSheets.spreadsheets.values.update({
                 spreadsheetId,
-                range: 'Página1!A1',
+                range: 'Página1!A2',
                 valueInputOption: 'RAW',
                 resource: {
                     values: valoresParaEnviar

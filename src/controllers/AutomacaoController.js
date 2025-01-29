@@ -1,5 +1,5 @@
 import AutomacaoRepository from "../repositories/AutomacaoRepository.js";
-
+import GoogleSheetsController from "../controllers/GoogleSheetsController.js";
 const repository = AutomacaoRepository;
 
 class AutomacaoController {
@@ -11,6 +11,7 @@ class AutomacaoController {
             }
 
             const resultado = await repository.processarEImportar(req.file.buffer);
+            await GoogleSheetsController.send();
             res.status(200).json(resultado);
         } catch (error) {
             console.error('Erro no controller:' + error);
