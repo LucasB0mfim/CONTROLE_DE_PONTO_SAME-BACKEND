@@ -1,7 +1,7 @@
 const config = {
     origin: '*',
-    module: ['GET', 'POST'],
-    Credential: true
+    methods: '*',
+    allowedHeaders: '*'
 }
 
 export default config;

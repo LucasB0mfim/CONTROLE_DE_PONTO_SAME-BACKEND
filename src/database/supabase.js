@@ -1,5 +1,9 @@
 // Chamando o banco de dados supabase
 import { createClient } from '@supabase/supabase-js';
+import dotenv from "dotenv";
+
+// Guarda as chaves para conexão com o banco
+dotenv.config();
 
 // Configuração inicial
 const supabase = createClient(
