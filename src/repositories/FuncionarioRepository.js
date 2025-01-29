@@ -18,52 +18,24 @@ class FuncionarioRepository {
         }
     }
 
-    async migrarBancoParaSupaBase() {
+    async migrarBancoDeDados() {
         try {
-            // Conecta ao banco SQL Server e busca os dados
-            await pool.connect();
-            const dadosPonto = await pool.request().query('EXEC dbo.ponto');
+            const funcionariosSqlServer = await this.buscarTodos();
 
-            // Formata os dados para inserção no Supabase
-            const dadosFormatados = dadosPonto.recordset.map(registro => ({
-                STATUS: registro.STATUS,
-                'CENTRO DE CUSTO': registro['CENTRO DE CUSTO'],
-                'FUNÇÃO': registro['FUNÇÃO'],
-                CHAPA: registro.CHAPA,
-                NOME: registro.NOME,
-                'DATA INÍCIO FÉRIAS': registro['DATA INÍCIO FÉRIAS'],
-                'DATA FIM FÉRIAS': registro['DATA FIM FÉRIAS']
-            }));
+            const {data, error} = await supabase
+            .from('funcionarios')
+            .insert(funcionariosSqlServer);
 
-            // Primeiro verifica quais registros já existem
-            for (const funcionario of dadosFormatados) {
-                // Verifica se já existe um funcionário com esse nome
-                const { data: existingData, error: searchError } = await supabase
-                    .from('FUNCIONARIOS')
-                    .select('NOME')
-                    .eq('NOME', funcionario.NOME)
-                    .single();
-
-                if (searchError && searchError.code !== 'PGRST116') { // PGRST116 é o código para "não encontrado"
-                    throw searchError;
-                }
-
-                // Se existir, atualiza. Se não existir, insere
-                const { error: upsertError } = await supabase
-                    .from('FUNCIONARIOS')
-                    .upsert(funcionario, {
-                        onConflict: 'NOME',
-                        ignoreDuplicates: false
-                    });
-
-                if (upsertError) throw upsertError;
+            if (error) {
+                throw new Error(error);
             }
 
-            return { message: 'Dados importados com sucesso' };
+            console.log('Migração realizada com sucesso.');
         } catch (error) {
-            console.error('Erro ao importar banco de dados:', error);
-            throw new Error(`Erro ao importar dados: ${error.message}`);
+            console.error('Erro ao migrar banco de dados.');
+            throw new Error(error);
         }
+        
     }
 }
 

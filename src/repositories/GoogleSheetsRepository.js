@@ -46,9 +46,8 @@ class GoogleSheetsRepository {
         }
     }
 
-    async gerarResumoComSupaBase() {
+    async gerarResumoSupaBase() {
         try {
-            await FuncionarioRepository.migrarBancoParaSupaBase();
             const funcionarios = (await supabase.from('funcionarios').select('*')).data;
             const planilhaDB = (await supabase.from('folha_ponto').select('*')).data;
 

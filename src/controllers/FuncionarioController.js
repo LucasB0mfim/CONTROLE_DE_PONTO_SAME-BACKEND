@@ -20,13 +20,13 @@ class FuncionarioController {
         }
     }
 
-    async import(req, res) {
+    async migrate(req, res) {
         try {
-            const resultado = await repository.importarBancoInternoParaSupeBase();
+            const resultado = await repository.migrarBancoDeDados();
             return res.json(resultado);
         } catch (error) {
-            console.log('Erro ao importar banco de dados para o supabase');
-            return res.status(500).json({ error: 'Não foi possível importar o banco de dados.' })
+            console.log('Erro ao migrar o banco de dados');
+            return res.status(500).json(error);
         }
     }
 }

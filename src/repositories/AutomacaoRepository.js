@@ -2,6 +2,7 @@ import csv from "csv-parser";
 import supabase from "../database/supabase.js";
 import { Readable } from 'stream';
 import GoogleSheetsRepository from "./GoogleSheetsRepository.js";
+import FuncionarioRepository from "./FuncionarioRepository.js";
 
 class AutomacaoRepository {
     _formatarData(dataStr) {
@@ -49,17 +50,14 @@ class AutomacaoRepository {
                 throw new Error(error.message || error);
             }
 
-            await GoogleSheetsRepository.gerarResumoComSupaBase();
+            await FuncionarioRepository.migrarBancoDeDados();
+            await GoogleSheetsRepository.gerarResumoSupaBase();
             await GoogleSheetsRepository.enviarResumo();
 
-            return {
-                message: 'Dados processados e importados com sucesso',
-                registrosImportados: data.length,
-                dados: data
-            };
+            return { message: 'Migração realizada com sucesso.' };
         } catch (error) {
             console.error('Erro ao processar e importar:', error);
-            throw new Error(`Erro ao processar e importar dados: ${error.message}`);
+            throw new Error(error);
         }
     }
 }

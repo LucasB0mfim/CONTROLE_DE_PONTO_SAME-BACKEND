@@ -12,6 +12,7 @@ import AutomacaoController from "../controllers/AutomacaoController.js";
 
 // Rotas de acesso
 router.get('/funcionarios/visualizar-funcionarios', FuncionarioController.index);
+router.post('/funcionarios/migrar-funcionarios', FuncionarioController.migrate);
 
 router.get("/planilha/visualizar-planilha", PlanilhaController.show);
 router.post("/planilha/importar-planilha", PlanilhaController.importarPlanilha);
