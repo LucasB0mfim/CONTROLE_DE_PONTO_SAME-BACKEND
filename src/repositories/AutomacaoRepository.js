@@ -13,8 +13,7 @@ class AutomacaoRepository {
 
     #contarAtestados(registros) {
         return registros.filter(registro =>
-            registro["EVENTO ABONO"] !== "NÃO CONSTA" &&
-            registro["EVENTO ABONO"] !== "Férias"
+            registro["EVENTO ABONO"] === "ATESTADO MÉDICO"
         ).length;
     }
 
