@@ -159,7 +159,7 @@ class AutomacaoRepository {
 
             const registrosDiarios = datasOrdenadas.map(data => {
                 const registroDia = funcionario.REGISTROS.find(r => r.DIA === data);
-                if (!registroDia) return "PRESENTE";
+                if (!registroDia) return "INCONSISTENTE";
                 
                 if (registroDia.FALTA === 'SIM') {
                     return registroDia["EVENTO ABONO"] === 'NÃO CONSTA' 
