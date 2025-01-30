@@ -159,14 +159,14 @@ class AutomacaoRepository {
 
             const registrosDiarios = datasOrdenadas.map(data => {
                 const registroDia = funcionario.REGISTROS.find(r => r.DIA === data);
-                if (!registroDia) return "INCONSISTENTE";
+                if (!registroDia) return 'PRESENTE';
                 
                 if (registroDia.FALTA === 'SIM') {
                     return registroDia["EVENTO ABONO"] === 'NÃO CONSTA' 
                         ? 'FALTOU' 
                         : registroDia['EVENTO ABONO'].toUpperCase();
                 }
-                return 'PRESENTE';
+                return 'INCONSISTENTE';
             });
 
             return [...dadosBasicos, ...registrosDiarios];
