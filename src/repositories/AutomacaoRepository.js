@@ -13,7 +13,7 @@ class AutomacaoRepository {
 
     #contarAtestados(registros) {
         return registros.filter(registro =>
-            registro["EVENTO ABONO"] === "ATESTADO MÉDICO"
+            registro["EVENTO ABONO"] === "Atestado Médico"
         ).length;
     }
 
