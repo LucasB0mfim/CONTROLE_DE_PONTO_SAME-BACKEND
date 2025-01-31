@@ -1,4 +1,4 @@
-import AutomacaoRepository from "../repositories/AutomacaoRepository.js";
+import AutomacaoRepository from '../repositories/AutomacaoRepository.js';
 
 class AutomacaoController {
     constructor() {
@@ -25,12 +25,23 @@ class AutomacaoController {
                 data: resultado
             });
         } catch (error) {
-            console.error("Erro ao processar arquivo:", error);
+            console.error(error);
             return res.status(500).json({
                 success: false,
                 message: "Erro ao processar o arquivo",
                 error: error.message
             });
+        }
+    }
+
+    async atualizar(req, res) {
+        try {
+            await AutomacaoRepository.update();
+            console.log('Planilha carregada.');
+            return res.status(200).json({ message: 'Planilha carregada.' });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({error});
         }
     }
 }

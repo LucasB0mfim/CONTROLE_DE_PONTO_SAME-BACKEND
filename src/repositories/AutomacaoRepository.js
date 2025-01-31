@@ -5,10 +5,35 @@ import supabase from "../database/supabase.js";
 import iniciarGoogleSheets from '../googleSheets/auth.js';
 
 class AutomacaoRepository {
-    // Funções auxiliares
-    #formatarData(dataStr) {
-        const [dia, mes, ano] = dataStr.split('/');
-        return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+
+    #formatarData(registro) {
+        // Return empty string if registro is undefined or null
+        if (!registro) return '';
+
+        try {
+            // Handle if the date is already in DD/MM/YYYY format
+            if (registro.includes('/')) {
+                return registro;
+            }
+
+            // Split the date string and handle potential undefined values
+            const parts = registro.split('-');
+            if (parts.length !== 3) {
+                return registro; // Return original if not in expected format
+            }
+
+            const [ano, mes, dia] = parts;
+
+            // Validate each part exists
+            if (!ano || !mes || !dia) {
+                return registro;
+            }
+
+            return `${dia}/${mes}/${ano}`;
+        } catch (error) {
+            console.error(`Erro ao formatar data: ${registro}`, error);
+            return registro; // Return original value if there's any error
+        }
     }
 
     #contarAtestados(registros) {
@@ -25,7 +50,12 @@ class AutomacaoRepository {
         ).length;
     }
 
-    // Funções do Supabase
+    #definirStatus(compararFuncionario) {
+        return compararFuncionario.some(folhaPonto => folhaPonto['EVENTO ABONO'] === 'Férias')
+            ? "Férias"
+            : "Ativo";
+    };
+
     async #buscarFolhaPonto() {
         const { data, error } = await supabase.from('folha_ponto').select('*');
         if (error) throw new Error(`Erro ao buscar folha ponto: ${error.message}`);
@@ -44,7 +74,6 @@ class AutomacaoRepository {
         return data;
     }
 
-    // Processamento do CSV
     async #processarCSV(file) {
         const resultado = [];
         const memoria = Readable.from(file.toString().replace(/^\uFEFF/, ''));
@@ -57,7 +86,7 @@ class AutomacaoRepository {
                     );
 
                     const camposEscolhidos = {
-                        "PERIODO": this.#formatarData(removerEspacos["Período"].split(" - ")[0]),
+                        "PERIODO": removerEspacos["Período"].split(" - ")[0],
                         "CHAPA": removerEspacos["Matrícula"] === "-" ? null : removerEspacos["Matrícula"],
                         "NOME": removerEspacos["Nome"],
                         "JORNADA REALIZADA": removerEspacos["Jornada realizada"],
@@ -72,78 +101,124 @@ class AutomacaoRepository {
         });
     }
 
-    // Geração do resumo
-    #gerarResumo(funcionarios, planilhaDB) {
-        return funcionarios.map(func => {
-            const registrosFuncionario = planilhaDB.filter(registro =>
-                registro.NOME === func.NOME
+    async #aplicarFormatacaoCabecalho(googleSheets, spreadsheetId) {
+        await googleSheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            resource: {
+                requests: [
+                    {
+                        repeatCell: {
+                            range: {
+                                sheetId: 0,
+                                startRowIndex: 0,
+                                endRowIndex: 1
+                            },
+                            cell: {
+                                userEnteredFormat: {
+                                    backgroundColor: {
+                                        red: 1.0,
+                                        green: 0.5,
+                                        blue: 0.0
+                                    },
+                                    textFormat: {
+                                        foregroundColor: {
+                                            red: 1.0,
+                                            green: 1.0,
+                                            blue: 1.0
+                                        },
+                                        bold: true,
+                                        fontSize: 13
+                                    }
+                                }
+                            },
+                            fields: 'userEnteredFormat(backgroundColor,textFormat)'
+                        }
+                    }
+                ]
+            }
+        });
+    }
+
+    #gerarResumo(funcionariosSB, folhaPontoSB) {
+
+        return funcionariosSB.map(buscar => {
+            const compararFuncionario = folhaPontoSB.filter(folhaPonto =>
+                folhaPonto.NOME === buscar.NOME
             );
 
-            const registrosSignificativos = registrosFuncionario.filter(registro =>
-                registro.FALTA === 'SIM' ||
-                registro['EVENTO ABONO'] !== 'NÃO CONSTA' ||
-                registro['JORNADA REALIZADA'] !== '00:00:00'
+            const dadosDinamicos = compararFuncionario.filter(folhaPonto =>
+                folhaPonto.FALTA === 'SIM' ||
+                folhaPonto['EVENTO ABONO'] !== 'NÃO CONSTA' ||
+                folhaPonto['JORNADA REALIZADA'] !== '00:00:00'
             );
 
+            
             return {
-                "DATA INÍCIO FÉRIAS": func["DATA INÍCIO FÉRIAS"],
-                "DATA FIM FÉRIAS": func["DATA FIM FÉRIAS"],
-                "CHAPA": func["CHAPA"],
-                "STATUS": func["STATUS"],
-                "NÚMERO ATESTADOS": this.#contarAtestados(registrosFuncionario),
-                "NÚMERO FALTAS": this.#contarFaltas(registrosFuncionario),
-                "CENTRO DE CUSTO": func["CENTRO DE CUSTO"],
-                "NOME": func["NOME"],
-                "FUNÇÃO": func["FUNÇÃO"],
-                "REGISTROS": registrosSignificativos.map(registro => ({
-                    "DIA": new Date(registro.PERIODO).toISOString().split('T')[0],
-                    "JORNADA REALIZADA": registro["JORNADA REALIZADA"],
-                    "FALTA": registro["FALTA"],
-                    "EVENTO ABONO": registro["EVENTO ABONO"]
+                "DATA INÍCIO FÉRIAS": this.#formatarData(buscar["DATA INÍCIO FÉRIAS"] || ''),
+                "DATA FIM FÉRIAS": this.#formatarData(buscar["DATA FIM FÉRIAS"] || ''),
+                "CHAPA": buscar["CHAPA"],
+                "STATUS": this.#definirStatus(compararFuncionario),
+                "NÚMERO ATESTADOS": this.#contarAtestados(compararFuncionario),
+                "NÚMERO FALTAS": this.#contarFaltas(compararFuncionario),
+                "CENTRO DE CUSTO": buscar["CENTRO DE CUSTO"],
+                "NOME": buscar["NOME"],
+                "FUNÇÃO": buscar["FUNÇÃO"],
+                "REGISTROS": dadosDinamicos.map(folhaPonto => ({
+                    "DIA": folhaPonto["PERIODO"],
+                    "JORNADA REALIZADA": folhaPonto["JORNADA REALIZADA"],
+                    "FALTA": folhaPonto["FALTA"],
+                    "EVENTO ABONO": folhaPonto["EVENTO ABONO"]
                 }))
             };
         });
     }
 
-    // Atualização do Google Sheets
     async #atualizarGoogleSheets(resumo) {
+        // Desestrutura a função
         const { googleSheets, spreadsheetId } = await iniciarGoogleSheets;
 
-        // Limpar planilha
+        // Limpa a planilha atual
         await googleSheets.spreadsheets.values.clear({
             spreadsheetId,
             range: 'Página1!A:Z'
         });
 
-        const headersFixos = [
+        // Definir o cabeçalho estático
+        const cabecalhoFixo = [
             'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS', 'CHAPA', 'STATUS',
             'NÚMERO ATESTADOS', 'NÚMERO FALTAS', 'CENTRO DE CUSTO',
             'NOME', 'FUNÇÃO'
         ];
 
-        const todasAsDatas = new Set(
+        // Array para armazenar os dias
+        const dias = new Set(
             resumo.flatMap(func => func.REGISTROS.map(reg => reg.DIA))
         );
 
-        const datasOrdenadas = Array.from(todasAsDatas).sort();
-        const headersDias = datasOrdenadas.map(data => 
-            new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-        );
+        // Deixar os dias ordenados
+        const diasOrdenados = Array.from(dias).sort();
 
-        const headers = [...headersFixos, ...headersDias];
+        // Unir os dois cabeçalhos
+        const cabecalho = [...cabecalhoFixo, ...diasOrdenados];
 
-        const dadosParaPlanilha = this.#prepararDadosParaPlanilha(resumo, datasOrdenadas);
-        const valoresParaEnviar = [headers, ...dadosParaPlanilha];
+        // 
+        const dadosParaPlanilha = this.#prepararDadosParaPlanilha(resumo, diasOrdenados);
 
+        // Define o que vai ser enviado para a planilha
+        const valoresParaEnviar = [cabecalho, ...dadosParaPlanilha];
+
+        // Atualizar valores
         await googleSheets.spreadsheets.values.update({
             spreadsheetId,
-            range: 'Página1!A2',
+            range: 'Página1!A1',
             valueInputOption: 'RAW',
             resource: { values: valoresParaEnviar }
         });
+
+        await this.#aplicarFormatacaoCabecalho(googleSheets, spreadsheetId);
     }
 
-    #prepararDadosParaPlanilha(resumo, datasOrdenadas) {
+    #prepararDadosParaPlanilha(resumo, diasOrdenados) {
         return resumo.map(funcionario => {
             const dadosBasicos = [
                 funcionario['DATA INÍCIO FÉRIAS'],
@@ -157,13 +232,13 @@ class AutomacaoRepository {
                 funcionario['FUNÇÃO']
             ];
 
-            const registrosDiarios = datasOrdenadas.map(data => {
+            const registrosDiarios = diasOrdenados.map(data => {
                 const registroDia = funcionario.REGISTROS.find(r => r.DIA === data);
                 if (!registroDia) return 'PRESENTE';
-                
+
                 if (registroDia.FALTA === 'SIM') {
-                    return registroDia["EVENTO ABONO"] === 'NÃO CONSTA' 
-                        ? 'FALTOU' 
+                    return registroDia["EVENTO ABONO"] === 'NÃO CONSTA'
+                        ? 'FALTOU'
                         : registroDia['EVENTO ABONO'].toUpperCase();
                 }
                 return 'INCONSISTENTE';
@@ -178,7 +253,7 @@ class AutomacaoRepository {
         try {
             const dadosCSV = await this.#processarCSV(file);
             await this.#adicionarFolhaPonto(dadosCSV);
-            
+
             const [funcionarios, planilhaDB] = await Promise.all([
                 this.#buscarFuncionarios(),
                 this.#buscarFolhaPonto()
@@ -190,7 +265,23 @@ class AutomacaoRepository {
             return resumo;
         } catch (error) {
             console.error('Erro no processamento:', error);
-            throw new Error(`Erro no processamento: ${error.message}`);
+            throw new Error(error);
+        }
+    }
+
+    async update() {
+        try {
+            const [funcionarios, planilhaDB] = await Promise.all([
+                this.#buscarFuncionarios(),
+                this.#buscarFolhaPonto()
+            ]);
+
+            const resumo = this.#gerarResumo(funcionarios, planilhaDB);
+            await this.#atualizarGoogleSheets(resumo);
+
+            return resumo;
+        } catch (error) {
+            throw new Error(error);
         }
     }
 }
