@@ -7,24 +7,24 @@ import iniciarGoogleSheets from '../googleSheets/auth.js';
 class AutomacaoRepository {
 
     #formatarData(registro) {
-        // Return empty string if registro is undefined or null
+        // Retorna string vazia se registro for indefinido ou nulo
         if (!registro) return '';
 
         try {
-            // Handle if the date is already in DD/MM/YYYY format
+            // Manipule se a data já estiver no formato DD/MM/AAAA
             if (registro.includes('/')) {
                 return registro;
             }
 
-            // Split the date string and handle potential undefined values
+            // Dividir a sequência de datas e manipular valores potencialmente indefinidos
             const parts = registro.split('-');
             if (parts.length !== 3) {
-                return registro; // Return original if not in expected format
+                return registro; // Devolver o original se não estiver no formato esperado
             }
 
             const [ano, mes, dia] = parts;
 
-            // Validate each part exists
+            // Valide a existência de cada parte
             if (!ano || !mes || !dia) {
                 return registro;
             }
@@ -32,7 +32,7 @@ class AutomacaoRepository {
             return `${dia}/${mes}/${ano}`;
         } catch (error) {
             console.error(`Erro ao formatar data: ${registro}`, error);
-            return registro; // Return original value if there's any error
+            return registro; // Retorna o valor original se houver algum erro
         }
     }
 
@@ -220,6 +220,7 @@ class AutomacaoRepository {
 
     #prepararDadosParaPlanilha(resumo, diasOrdenados) {
         return resumo.map(funcionario => {
+            // Extrai os dados básicos do funcionário
             const dadosBasicos = [
                 funcionario['DATA INÍCIO FÉRIAS'],
                 funcionario['DATA FIM FÉRIAS'],
@@ -231,24 +232,31 @@ class AutomacaoRepository {
                 funcionario['NOME'],
                 funcionario['FUNÇÃO']
             ];
-
+    
             const registrosDiarios = diasOrdenados.map(data => {
-                const registroDia = funcionario.REGISTROS.find(r => r.DIA === data);
+                const registroDia = funcionario.REGISTROS.find(registro => registro.DIA === data);
+                
                 if (!registroDia) return 'PRESENTE';
-
-                if (registroDia.FALTA === 'SIM') {
-                    return registroDia["EVENTO ABONO"] === 'NÃO CONSTA'
-                        ? 'FALTOU'
-                        : registroDia['EVENTO ABONO'].toUpperCase();
+            
+                const hora = parseInt(registroDia['JORNADA REALIZADA'].split(':')[0]);
+                const faltou = registroDia.FALTA === 'SIM';
+                const temAbono = registroDia['EVENTO ABONO'] !== 'NÃO CONSTA';
+            
+                if (faltou) {
+                    return temAbono ? registroDia['EVENTO ABONO'].toUpperCase() : 'FALTOU';
                 }
+    
+                if (hora <= 3) {
+                    return 'FALTOU';
+                }
+    
                 return 'INCONSISTENTE';
             });
-
+    
             return [...dadosBasicos, ...registrosDiarios];
         });
     }
 
-    // Método principal
     async index(file) {
         try {
             const dadosCSV = await this.#processarCSV(file);
@@ -281,6 +289,7 @@ class AutomacaoRepository {
 
             return resumo;
         } catch (error) {
+            console.error(error);
             throw new Error(error);
         }
     }
