@@ -54,7 +54,7 @@ class AutomacaoRepository {
         return compararFuncionario.some(folhaPonto => folhaPonto['EVENTO ABONO'] === 'Férias')
             ? "Férias"
             : "Ativo";
-    };
+    }
 
     async #buscarFolhaPonto() {
         const { data, error } = await supabase.from('folha_ponto').select('*');
