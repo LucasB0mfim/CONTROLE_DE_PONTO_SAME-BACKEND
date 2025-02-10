@@ -152,7 +152,7 @@ class AutomacaoRepository {
                 folhaPonto['JORNADA REALIZADA'] !== '00:00:00'
             );
 
-            
+
             return {
                 "DATA INÍCIO FÉRIAS": this.#formatarData(buscar["DATA INÍCIO FÉRIAS"] || ''),
                 "DATA FIM FÉRIAS": this.#formatarData(buscar["DATA FIM FÉRIAS"] || ''),
@@ -195,8 +195,13 @@ class AutomacaoRepository {
             resumo.flatMap(func => func.REGISTROS.map(reg => reg.DIA))
         );
 
-        // Deixar os dias ordenados
-        const diasOrdenados = Array.from(dias).sort();
+        // Ordenar os dias corretamente como datas
+        const diasOrdenados = Array.from(dias).sort((a, b) => {
+            const dataA = new Date(a);
+            const dataB = new Date(b);
+            return dataA - dataB;
+        });
+
 
         // Unir os dois cabeçalhos
         const cabecalho = [...cabecalhoFixo, ...diasOrdenados];
@@ -232,27 +237,27 @@ class AutomacaoRepository {
                 funcionario['NOME'],
                 funcionario['FUNÇÃO']
             ];
-    
+
             const registrosDiarios = diasOrdenados.map(data => {
                 const registroDia = funcionario.REGISTROS.find(registro => registro.DIA === data);
-                
+
                 if (!registroDia) return 'PRESENTE';
-            
+
                 const hora = parseInt(registroDia['JORNADA REALIZADA'].split(':')[0]);
                 const faltou = registroDia.FALTA === 'SIM';
                 const temAbono = registroDia['EVENTO ABONO'] !== 'NÃO CONSTA';
-            
+
                 if (faltou) {
                     return temAbono ? registroDia['EVENTO ABONO'].toUpperCase() : 'FALTOU';
                 }
-    
+
                 if (hora <= 3) {
                     return 'FALTOU';
                 }
-    
+
                 return 'INCONSISTENTE';
             });
-    
+
             return [...dadosBasicos, ...registrosDiarios];
         });
     }
