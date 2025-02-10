@@ -114,7 +114,7 @@ class AutomacaoRepository {
             "FUNÇÃO": 200,
             "REGISTROS": 200
         };
-        
+
         const columnIndexes = Object.keys(columnWidths).map((_, index) => index);
         const requests = [
             {
@@ -160,7 +160,7 @@ class AutomacaoRepository {
                 }
             }))
         ];
-    
+
         await googleSheets.spreadsheets.batchUpdate({
             spreadsheetId,
             resource: { requests }
@@ -223,10 +223,14 @@ class AutomacaoRepository {
             resumo.flatMap(func => func.REGISTROS.map(reg => reg.DIA))
         );
 
-        // Ordenar os dias corretamente como datas
+        // Converter as datas para um formato padronizado e ordená-las corretamente
         const diasOrdenados = Array.from(dias).sort((a, b) => {
-            const dataA = new Date(a);
-            const dataB = new Date(b);
+            const [diaA, mesA, anoA] = a.split('/').map(Number);
+            const [diaB, mesB, anoB] = b.split('/').map(Number);
+
+            const dataA = new Date(anoA, mesA - 1, diaA);
+            const dataB = new Date(anoB, mesB - 1, diaB);
+
             return dataA - dataB;
         });
 
