@@ -102,40 +102,68 @@ class AutomacaoRepository {
     }
 
     async #aplicarFormatacaoCabecalho(googleSheets, spreadsheetId) {
+        const columnWidths = {
+            "DATA INÍCIO FÉRIAS": 120,
+            "DATA FIM FÉRIAS": 120,
+            "CHAPA": 100,
+            "STATUS": 120,
+            "NÚMERO ATESTADOS": 160,
+            "NÚMERO FALTAS": 140,
+            "CENTRO DE CUSTO": 200,
+            "NOME": 320,
+            "FUNÇÃO": 200,
+            "REGISTROS": 200
+        };
+        
+        const columnIndexes = Object.keys(columnWidths).map((_, index) => index);
+        const requests = [
+            {
+                repeatCell: {
+                    range: {
+                        sheetId: 0,
+                        startRowIndex: 0,
+                        endRowIndex: 1
+                    },
+                    cell: {
+                        userEnteredFormat: {
+                            backgroundColor: {
+                                red: 1.0,
+                                green: 0.5,
+                                blue: 0.0
+                            },
+                            textFormat: {
+                                foregroundColor: {
+                                    red: 1.0,
+                                    green: 1.0,
+                                    blue: 1.0
+                                },
+                                bold: true,
+                                fontSize: 13
+                            }
+                        }
+                    },
+                    fields: 'userEnteredFormat(backgroundColor,textFormat)'
+                }
+            },
+            ...columnIndexes.map((colIndex) => ({
+                updateDimensionProperties: {
+                    range: {
+                        sheetId: 0,
+                        dimension: "COLUMNS",
+                        startIndex: colIndex,
+                        endIndex: colIndex + 1
+                    },
+                    properties: {
+                        pixelSize: Object.values(columnWidths)[colIndex]
+                    },
+                    fields: "pixelSize"
+                }
+            }))
+        ];
+    
         await googleSheets.spreadsheets.batchUpdate({
             spreadsheetId,
-            resource: {
-                requests: [
-                    {
-                        repeatCell: {
-                            range: {
-                                sheetId: 0,
-                                startRowIndex: 0,
-                                endRowIndex: 1
-                            },
-                            cell: {
-                                userEnteredFormat: {
-                                    backgroundColor: {
-                                        red: 1.0,
-                                        green: 0.5,
-                                        blue: 0.0
-                                    },
-                                    textFormat: {
-                                        foregroundColor: {
-                                            red: 1.0,
-                                            green: 1.0,
-                                            blue: 1.0
-                                        },
-                                        bold: true,
-                                        fontSize: 13
-                                    }
-                                }
-                            },
-                            fields: 'userEnteredFormat(backgroundColor,textFormat)'
-                        }
-                    }
-                ]
-            }
+            resource: { requests }
         });
     }
 
