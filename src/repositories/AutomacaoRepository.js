@@ -57,8 +57,16 @@ class AutomacaoRepository {
     }
 
     async #buscarFolhaPonto() {
-        const { data, error } = await supabase.from('folha_ponto').select('*');
+        const { data, error } = await supabase
+            .from('folha_ponto')
+            .select('*')
+            .order('PERIODO', { ascending: true });
+        
         if (error) throw new Error(`Erro ao buscar folha ponto: ${error.message}`);
+        
+        console.log('Registros de 06/02:', data.filter(r => r.PERIODO === '06/02/2025'));
+        console.log('Registros de 07/02:', data.filter(r => r.PERIODO === '07/02/2025'));
+        
         return data;
     }
 
@@ -168,7 +176,6 @@ class AutomacaoRepository {
     }
 
     #gerarResumo(funcionariosSB, folhaPontoSB) {
-
         return funcionariosSB.map(buscar => {
             const compararFuncionario = folhaPontoSB.filter(folhaPonto =>
                 folhaPonto.NOME === buscar.NOME
@@ -179,7 +186,6 @@ class AutomacaoRepository {
                 folhaPonto['EVENTO ABONO'] !== 'NÃO CONSTA' ||
                 folhaPonto['JORNADA REALIZADA'] !== '00:00:00'
             );
-
 
             return {
                 "DATA INÍCIO FÉRIAS": this.#formatarData(buscar["DATA INÍCIO FÉRIAS"] || ''),
@@ -202,49 +208,39 @@ class AutomacaoRepository {
     }
 
     async #atualizarGoogleSheets(resumo) {
-        // Desestrutura a função
         const { googleSheets, spreadsheetId } = await iniciarGoogleSheets;
 
-        // Limpa a planilha atual
         await googleSheets.spreadsheets.values.clear({
             spreadsheetId,
             range: 'Página1!A:Z'
         });
 
-        // Definir o cabeçalho estático
         const cabecalhoFixo = [
             'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS', 'CHAPA', 'STATUS',
             'NÚMERO ATESTADOS', 'NÚMERO FALTAS', 'CENTRO DE CUSTO',
             'NOME', 'FUNÇÃO'
         ];
 
-        // Array para armazenar os dias
         const dias = new Set(
             resumo.flatMap(func => func.REGISTROS.map(reg => reg.DIA))
         );
 
-        // Converter as datas para um formato padronizado e ordená-las corretamente
+        // Fixed date sorting
         const diasOrdenados = Array.from(dias).sort((a, b) => {
             const [diaA, mesA, anoA] = a.split('/').map(Number);
             const [diaB, mesB, anoB] = b.split('/').map(Number);
 
-            const dataA = new Date(anoA, mesA - 1, diaA);
-            const dataB = new Date(anoB, mesB - 1, diaB);
+            // Ensure proper year comparison
+            const dataA = new Date(anoA < 100 ? anoA + 2000 : anoA, mesA - 1, diaA);
+            const dataB = new Date(anoB < 100 ? anoB + 2000 : anoB, mesB - 1, diaB);
 
             return dataA - dataB;
         });
 
-
-        // Unir os dois cabeçalhos
         const cabecalho = [...cabecalhoFixo, ...diasOrdenados];
-
-        // 
         const dadosParaPlanilha = this.#prepararDadosParaPlanilha(resumo, diasOrdenados);
-
-        // Define o que vai ser enviado para a planilha
         const valoresParaEnviar = [cabecalho, ...dadosParaPlanilha];
 
-        // Atualizar valores
         await googleSheets.spreadsheets.values.update({
             spreadsheetId,
             range: 'Página1!A1',
