@@ -61,18 +61,18 @@ class AutomacaoRepository {
         let paginaAtual = 0;
         let todosOsRegistros = [];
         let hasMoreData = true;
-    
+
         while (hasMoreData) {
             const { data, error } = await supabase
                 .from('folha_ponto')
                 .select('*')
                 .order('PERIODO', { ascending: true })
                 .range(paginaAtual * registrosPorPagina, (paginaAtual + 1) * registrosPorPagina - 1);
-    
+
             if (error) {
                 throw new Error(`Erro ao buscar folha ponto: ${error.message}`);
             }
-    
+
             if (data.length > 0) {
                 todosOsRegistros = todosOsRegistros.concat(data);
                 paginaAtual++;
@@ -80,7 +80,7 @@ class AutomacaoRepository {
                 hasMoreData = false;
             }
         }
-    
+
         console.log('Total de registros encontrados:', todosOsRegistros.length);
         return todosOsRegistros;
     }
@@ -129,13 +129,13 @@ class AutomacaoRepository {
             "CENTRO DE CUSTO": 200,
             "NOME": 320,
             "FUNÇÃO": 200,
-            "DATA INÍCIO FÉRIAS": 120,
-            "DATA FIM FÉRIAS": 120,
-            "CHAPA": 100,
-            "STATUS": 100,
-            "NÚMERO ATESTADOS": 160,
-            "NÚMERO FALTAS": 140,
-            "REGISTROS": 120
+            "DATA INÍCIO FÉRIAS": 80,
+            "DATA FIM FÉRIAS": 70,
+            "CHAPA": 50,
+            "STATUS": 55,
+            "NÚMERO ATESTADOS": 80,
+            "NÚMERO FALTAS": 60,
+            "REGISTROS": 37
         };
 
         const columnIndexes = Object.keys(columnWidths).map((_, index) => index);
@@ -161,7 +161,7 @@ class AutomacaoRepository {
                                     blue: 1.0
                                 },
                                 bold: true,
-                                fontSize: 13
+                                fontSize: 9
                             }
                         }
                     },
@@ -231,8 +231,8 @@ class AutomacaoRepository {
         });
 
         const cabecalhoFixo = [
-            'CENTRO DE CUSTO', 'NOME', 'FUNÇÃO', 'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS', 
-            'CHAPA', 'STATUS', 'NÚMERO ATESTADOS', 'NÚMERO FALTAS', 
+            'CENTRO DE CUSTO', 'NOME', 'FUNÇÃO', 'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS',
+            'CHAPA', 'STATUS', 'NÚMERO ATESTADOS', 'NÚMERO FALTAS',
         ];
 
         const dias = new Set(
@@ -249,9 +249,16 @@ class AutomacaoRepository {
             const dataB = new Date(anoB < 100 ? anoB + 2000 : anoB, mesB - 1, diaB);
 
             return dataA - dataB;
-        });
+        }).map(data => {
+            const [dia, mes] = data.split('/');
+            return `${dia}/${mes}`;
+        });;
 
-        const cabecalho = [...cabecalhoFixo, ...diasOrdenados];
+        const cabecalho = [...cabecalhoFixo, ...diasOrdenados.map(data => {
+            const [dia, mes] = data.split('/');
+            return `${dia}/${mes}`; // Formata para DD/MM
+        })];
+
         const dadosParaPlanilha = this.#prepararDadosParaPlanilha(resumo, diasOrdenados);
         const valoresParaEnviar = [cabecalho, ...dadosParaPlanilha];
 
@@ -281,7 +288,13 @@ class AutomacaoRepository {
             ];
 
             const registrosDiarios = diasOrdenados.map(data => {
-                const registroDia = funcionario.REGISTROS.find(registro => registro.DIA === data);
+                const [dia, mes] = data.split('/');
+                const dataCompleta = `${dia}/${mes}`; // Formata para DD/MM
+
+                const registroDia = funcionario.REGISTROS.find(registro => {
+                    const [registroDia, registroMes] = registro.DIA.split('/');
+                    return `${registroDia}/${registroMes}` === dataCompleta;
+                });
 
                 if (!registroDia) return 'P';
 
@@ -305,7 +318,6 @@ class AutomacaoRepository {
                 if (ferias) {
                     return 'FE'
                 }
-
 
                 if (hora <= 3) {
                     return 'F';
