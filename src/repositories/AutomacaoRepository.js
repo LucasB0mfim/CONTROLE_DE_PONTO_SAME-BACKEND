@@ -212,7 +212,7 @@ class AutomacaoRepository {
 
         await googleSheets.spreadsheets.values.clear({
             spreadsheetId,
-            range: 'Página1!A:Z'
+            range: 'Página1'
         });
 
         const cabecalhoFixo = [
