@@ -32,7 +32,7 @@ class AutomacaoRepository {
             return `${dia}/${mes}/${ano}`;
         } catch (error) {
             console.error(`Erro ao formatar data: ${registro}`, error);
-            return registro; // Retorna o valor original se houver algum erro
+            return registro;
         }
     }
 
@@ -57,17 +57,32 @@ class AutomacaoRepository {
     }
 
     async #buscarFolhaPonto() {
-        const { data, error } = await supabase
-            .from('folha_ponto')
-            .select('*')
-            .order('PERIODO', { ascending: true });
-        
-        if (error) throw new Error(`Erro ao buscar folha ponto: ${error.message}`);
-        
-        console.log('Registros de 06/02:', data.filter(r => r.PERIODO === '06/02/2025'));
-        console.log('Registros de 07/02:', data.filter(r => r.PERIODO === '07/02/2025'));
-        
-        return data;
+        const registrosPorPagina = 1000;
+        let paginaAtual = 0;
+        let todosOsRegistros = [];
+        let hasMoreData = true;
+    
+        while (hasMoreData) {
+            const { data, error } = await supabase
+                .from('folha_ponto')
+                .select('*')
+                .order('PERIODO', { ascending: true })
+                .range(paginaAtual * registrosPorPagina, (paginaAtual + 1) * registrosPorPagina - 1);
+    
+            if (error) {
+                throw new Error(`Erro ao buscar folha ponto: ${error.message}`);
+            }
+    
+            if (data.length > 0) {
+                todosOsRegistros = todosOsRegistros.concat(data);
+                paginaAtual++;
+            } else {
+                hasMoreData = false;
+            }
+        }
+    
+        console.log('Total de registros encontrados:', todosOsRegistros.length);
+        return todosOsRegistros;
     }
 
     async #buscarFuncionarios() {
@@ -111,15 +126,15 @@ class AutomacaoRepository {
 
     async #aplicarFormatacaoCabecalho(googleSheets, spreadsheetId) {
         const columnWidths = {
+            "CENTRO DE CUSTO": 200,
+            "NOME": 320,
+            "FUNÇÃO": 200,
             "DATA INÍCIO FÉRIAS": 120,
             "DATA FIM FÉRIAS": 120,
             "CHAPA": 100,
             "STATUS": 100,
             "NÚMERO ATESTADOS": 160,
             "NÚMERO FALTAS": 140,
-            "CENTRO DE CUSTO": 200,
-            "NOME": 320,
-            "FUNÇÃO": 200,
             "REGISTROS": 120
         };
 
@@ -188,15 +203,15 @@ class AutomacaoRepository {
             );
 
             return {
+                "CENTRO DE CUSTO": buscar["CENTRO DE CUSTO"],
+                "NOME": buscar["NOME"],
+                "FUNÇÃO": buscar["FUNÇÃO"],
                 "DATA INÍCIO FÉRIAS": this.#formatarData(buscar["DATA INÍCIO FÉRIAS"] || ''),
                 "DATA FIM FÉRIAS": this.#formatarData(buscar["DATA FIM FÉRIAS"] || ''),
                 "CHAPA": buscar["CHAPA"],
                 "STATUS": this.#definirStatus(compararFuncionario),
                 "NÚMERO ATESTADOS": this.#contarAtestados(compararFuncionario),
                 "NÚMERO FALTAS": this.#contarFaltas(compararFuncionario),
-                "CENTRO DE CUSTO": buscar["CENTRO DE CUSTO"],
-                "NOME": buscar["NOME"],
-                "FUNÇÃO": buscar["FUNÇÃO"],
                 "REGISTROS": dadosDinamicos.map(folhaPonto => ({
                     "DIA": folhaPonto["PERIODO"],
                     "JORNADA REALIZADA": folhaPonto["JORNADA REALIZADA"],
@@ -216,9 +231,8 @@ class AutomacaoRepository {
         });
 
         const cabecalhoFixo = [
-            'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS', 'CHAPA', 'STATUS',
-            'NÚMERO ATESTADOS', 'NÚMERO FALTAS', 'CENTRO DE CUSTO',
-            'NOME', 'FUNÇÃO'
+            'CENTRO DE CUSTO', 'NOME', 'FUNÇÃO', 'DATA INÍCIO FÉRIAS', 'DATA FIM FÉRIAS', 
+            'CHAPA', 'STATUS', 'NÚMERO ATESTADOS', 'NÚMERO FALTAS', 
         ];
 
         const dias = new Set(
@@ -255,15 +269,15 @@ class AutomacaoRepository {
         return resumo.map(funcionario => {
             // Extrai os dados básicos do funcionário
             const dadosBasicos = [
+                funcionario['CENTRO DE CUSTO'],
+                funcionario['NOME'],
+                funcionario['FUNÇÃO'],
                 funcionario['DATA INÍCIO FÉRIAS'],
                 funcionario['DATA FIM FÉRIAS'],
                 funcionario['CHAPA'],
                 funcionario['STATUS'],
                 funcionario['NÚMERO ATESTADOS'],
                 funcionario['NÚMERO FALTAS'],
-                funcionario['CENTRO DE CUSTO'],
-                funcionario['NOME'],
-                funcionario['FUNÇÃO']
             ];
 
             const registrosDiarios = diasOrdenados.map(data => {
