@@ -212,7 +212,7 @@ class AutomacaoRepository {
 
         await googleSheets.spreadsheets.values.clear({
             spreadsheetId,
-            range: 'Página1'
+            range: 'Página1!A:Z'
         });
 
         const cabecalhoFixo = [
@@ -280,6 +280,9 @@ class AutomacaoRepository {
                 if (faltou && !temAbono) {
                     return 'F';
                 }
+                if (registroDia['EVENTO ABONO'] !== 'NÃO CONSTA' && registroDia['EVENTO ABONO'] !== 'Férias' && registroDia['EVENTO ABONO'] !== 'Atestado Médico') {
+                    return 'AB'
+                }
 
                 if (atestado) {
                     return 'AT'
@@ -289,9 +292,6 @@ class AutomacaoRepository {
                     return 'FE'
                 }
 
-                if (temAbono !== 'Férias' || temAbono !== 'Atestado Médico') {
-                    return 'AB'
-                }
 
                 if (hora <= 3) {
                     return 'F';
