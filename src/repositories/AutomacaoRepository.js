@@ -114,13 +114,13 @@ class AutomacaoRepository {
             "DATA INÍCIO FÉRIAS": 120,
             "DATA FIM FÉRIAS": 120,
             "CHAPA": 100,
-            "STATUS": 120,
+            "STATUS": 100,
             "NÚMERO ATESTADOS": 160,
             "NÚMERO FALTAS": 140,
             "CENTRO DE CUSTO": 200,
             "NOME": 320,
             "FUNÇÃO": 200,
-            "REGISTROS": 200
+            "REGISTROS": 120
         };
 
         const columnIndexes = Object.keys(columnWidths).map((_, index) => index);
@@ -269,21 +269,35 @@ class AutomacaoRepository {
             const registrosDiarios = diasOrdenados.map(data => {
                 const registroDia = funcionario.REGISTROS.find(registro => registro.DIA === data);
 
-                if (!registroDia) return 'PRESENTE';
+                if (!registroDia) return 'P';
 
                 const hora = parseInt(registroDia['JORNADA REALIZADA'].split(':')[0]);
                 const faltou = registroDia.FALTA === 'SIM';
                 const temAbono = registroDia['EVENTO ABONO'] !== 'NÃO CONSTA';
+                const atestado = registroDia['EVENTO ABONO'] === 'Atestado Médico';
+                const ferias = registroDia['EVENTO ABONO'] === 'Férias';
 
-                if (faltou) {
-                    return temAbono ? registroDia['EVENTO ABONO'].toUpperCase() : 'FALTOU';
+                if (faltou && !temAbono) {
+                    return 'F';
+                }
+
+                if (atestado) {
+                    return 'AT'
+                }
+
+                if (ferias) {
+                    return 'FE'
+                }
+
+                if (temAbono !== 'Férias' || temAbono !== 'Atestado Médico') {
+                    return 'AB'
                 }
 
                 if (hora <= 3) {
-                    return 'FALTOU';
+                    return 'F';
                 }
 
-                return 'INCONSISTENTE';
+                return 'I';
             });
 
             return [...dadosBasicos, ...registrosDiarios];
