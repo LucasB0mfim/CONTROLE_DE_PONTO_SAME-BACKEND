@@ -8,7 +8,7 @@ const router = express.Router();
 import AutomacaoController from "../controllers/AutomacaoController.js";
 
 // Rotas de acesso
-router.post("/gerar-planilha/gerar-planilha", multerConfig.single('file'), AutomacaoController.processarArquivo);
+router.post("/google-sheets/gerar-planilha", multerConfig.single('file'), AutomacaoController.processarArquivo);
 router.post("/google-sheets/carregar-planilha", AutomacaoController.atualizarGoogleSheets);
 
 // Exportando a rota
