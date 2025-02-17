@@ -10,6 +10,7 @@ import AutomacaoController from "../controllers/AutomacaoController.js";
 // Rotas de acesso
 router.post("/google-sheets/gerar-planilha", multerConfig.single('file'), AutomacaoController.processarArquivo);
 router.post("/google-sheets/carregar-planilha", AutomacaoController.atualizarGoogleSheets);
+router.post("/update/employee", AutomacaoController.updateEmployee);
 
 // Exportando a rota
 export default router;

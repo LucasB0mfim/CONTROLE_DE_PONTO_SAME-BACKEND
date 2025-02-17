@@ -1,6 +1,7 @@
 import csv from "csv-parser";
 import { Readable } from 'stream';
 
+import pool from "../database/conexao.js";
 import supabase from "../database/supabase.js";
 import iniciarGoogleSheets from '../googleSheets/auth.js';
 
@@ -366,6 +367,36 @@ class AutomacaoRepository {
             throw new Error(error);
         }
     }
+
+    async updateEmployee() {
+        try {
+            await pool.connect();
+
+            const employeeSqlServer = await pool.request().query('EXEC dbo.same_experiencia');
+            const employees = employeeSqlServer.recordset;
+
+            if (!employees || employees.length === 0) {
+                throw new Error("Nenhum dado encontrado no SQL Server para atualizar.");
+            }
+
+            const { data, error } = await supabase
+                .from('funcionarios')
+                .upsert(employees, { onConflict: ['CHAPA'] });
+
+            if (error) {
+                console.error("Erro ao atualizar os dados no Supabase:", error.message);
+                throw new Error(error.message);
+            }
+            
+            return employees;
+        } catch (error) {
+            console.error("Erro ao executar a sincronização:", error.message);
+            throw new Error(error.message);
+        } finally {
+            await pool.close();
+        }
+    }
+
 }
 
 export default new AutomacaoRepository();

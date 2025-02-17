@@ -1,10 +1,12 @@
 import AutomacaoRepository from '../repositories/AutomacaoRepository.js';
 
 class AutomacaoController {
+
     constructor() {
         this.repository = AutomacaoRepository;
         this.processarArquivo = this.processarArquivo.bind(this);
         this.atualizarGoogleSheets = this.atualizarGoogleSheets.bind(this);
+        this.updateEmployee = this.updateEmployee.bind(this);
     }
 
     async processarArquivo(req, res) {
@@ -38,14 +40,14 @@ class AutomacaoController {
         try {
             await this.repository.update();
             console.log('Planilha carregada');
-            
+
             return res.status(200).json({
                 success: true,
                 message: "Google Sheets carregado."
             });
         } catch (error) {
             console.error(error.message);
-            
+
             return res.status(500).json({
                 success: false,
                 message: "Erro carregar Google Sheets.",
@@ -53,6 +55,22 @@ class AutomacaoController {
             });
         }
     }
-}
+
+    async updateEmployee(req, res) {
+        try {
+            const result = await this.repository.updateEmployee();
+            console.log("--- RESULTADO DO BANCO DE DADOS ---");
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        };
+    };
+};
 
 export default new AutomacaoController();
