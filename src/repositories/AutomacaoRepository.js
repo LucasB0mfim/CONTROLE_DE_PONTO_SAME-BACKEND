@@ -193,16 +193,22 @@ class AutomacaoRepository {
 
     #gerarResumo(funcionariosSB, folhaPontoSB) {
         return funcionariosSB.map(buscar => {
-            const compararFuncionario = folhaPontoSB.filter(folhaPonto =>
-                folhaPonto.NOME === buscar.NOME
-            );
-
+            // Normaliza a chapa do funcionário para garantir que tenha 6 dígitos
+            const chapaFuncionario = buscar.CHAPA ? String(buscar.CHAPA).padStart(6, '0') : null;
+    
+            // Filtra a folha de ponto com base na chapa normalizada
+            const compararFuncionario = folhaPontoSB.filter(folhaPonto => {
+                // Normaliza a chapa da folha de ponto para garantir que tenha 6 dígitos
+                const chapaFolhaPonto = folhaPonto.CHAPA ? String(folhaPonto.CHAPA).padStart(6, '0') : null;
+                return chapaFolhaPonto === chapaFuncionario;
+            });
+    
             const dadosDinamicos = compararFuncionario.filter(folhaPonto =>
                 folhaPonto.FALTA === 'SIM' ||
                 folhaPonto['EVENTO ABONO'] !== 'NÃO CONSTA' ||
                 folhaPonto['JORNADA REALIZADA'] !== '00:00:00'
             );
-
+    
             return {
                 "CENTRO DE CUSTO": buscar["CENTRO DE CUSTO"],
                 "NOME": buscar["NOME"],
